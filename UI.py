@@ -73,15 +73,19 @@ def saveSettings(top, codeEntry, victoryAudioEntry, defeatAudioEntry):
         "defeatAudioPath": defeatAudioEntry.get().strip()
     }
 
-    #get old settings
-    with open("settings.json", "r") as file:
-        oldSettings = json.load(file)
+    #get old settings, if file not found make new file
+    try:
+        with open("files/settings.json", "r") as file:
+            oldSettings = json.load(file)
 
+        #if code has changed a refresh might be needed
         if(settings["code"] != oldSettings["code"]):
             refreshNeeded = True
+    except:
+        pass
 
     #save settings to file
-    with open("settings.json", "w") as file:
+    with open("files/settings.json", "w") as file:
         json.dump(settings, file)
 
     #refresh main window if needed
@@ -100,7 +104,7 @@ def loadSettings():
     #Open the settings from the file
     #If this fails, the default settings will be used
     try:
-        with open("settings.json", "r") as file:
+        with open("files/settings.json", "r") as file:
             settings = json.load(file)
     except:
         pass
@@ -115,13 +119,15 @@ def refreshMainWindow():
     while(True):
         if(Cache.isCodeInCache(code)):
             if(Cache.isUpdateNeeded(code)):
+                print("Valid code, update needed")
                 #code in cache and needs updated, scrape and update cache
                 response = Scraper.sendQuery(code)
                 Cache.updateCache(code, response)
                 break
             else:
+                print("Valid code, update not needed")
                 #code exists but does not need update, pull from cache
-                response = Cache.readCache(code)
+                response = Cache.readCache()[code]
                 break
         else:
             #not in cache, need to scrape
@@ -132,6 +138,7 @@ def refreshMainWindow():
                 print("Not in cache, updating")
                 break
             else:
+                print("Invalid Code")
                 #if code is invalid, use default settings and try again
                 code = defaultSettings["code"]
 
