@@ -1,6 +1,7 @@
 from tkinter import *
 import Scraper
 import json
+import Cache
 
 ### Features to support ###
 
@@ -62,7 +63,8 @@ def openSettings():
 
 def saveSettings(top, codeEntry, victoryAudioEntry, defeatAudioEntry):
 
-    refreshNeeded = False #if the code has changed, we need to refresh
+    #if the code has changed, we need to refresh
+    refreshNeeded = False 
 
     #format new settings
     settings = {
@@ -74,6 +76,7 @@ def saveSettings(top, codeEntry, victoryAudioEntry, defeatAudioEntry):
     #get old settings
     with open("settings.json", "r") as file:
         oldSettings = json.load(file)
+
         if(settings["code"] != oldSettings["code"]):
             refreshNeeded = True
 
@@ -103,25 +106,39 @@ def loadSettings():
         pass
     
     return settings
-    
 
 def refreshMainWindow():
     #load settings
     settings = loadSettings()
     code = settings["code"]
 
-    #parse data from response
-    response = Scraper.sendQuery(code)["data"]
+    while(True):
+        if(Cache.isCodeInCache(code)):
+            if(Cache.isUpdateNeeded(code)):
+                #code in cache and needs updated, scrape and update cache
+                response = Scraper.sendQuery(code)
+                Cache.updateCache(code, response)
+                break
+            else:
+                #code exists but does not need update, pull from cache
+                response = Cache.readCache(code)
+                break
+        else:
+            #not in cache, need to scrape
+            response = Scraper.sendQuery(code)
+            if(response["data"]["getConnectCode"]):
+                #if code is valid, update cache
+                Cache.updateCache(code, response)
+                print("Not in cache, updating")
+                break
+            else:
+                #if code is invalid, use default settings and try again
+                code = defaultSettings["code"]
 
-    #if the code does not exist, use default settings and try again
-    if(not response["getConnectCode"]):
-        code = defaultSettings["code"]
-        response = Scraper.sendQuery(code)["data"]
-
-    displayName = response["getConnectCode"]["user"]["displayName"]
-    rating = response["getConnectCode"]["user"]["rankedNetplayProfile"]["ratingOrdinal"]
-    winCount = str(response["getConnectCode"]["user"]["rankedNetplayProfile"]["wins"])
-    lossCount = str(response["getConnectCode"]["user"]["rankedNetplayProfile"]["losses"])
+    displayName = response["data"]["getConnectCode"]["user"]["displayName"]
+    rating = response["data"]["getConnectCode"]["user"]["rankedNetplayProfile"]["ratingOrdinal"]
+    winCount = str(response["data"]["getConnectCode"]["user"]["rankedNetplayProfile"]["wins"])
+    lossCount = str(response["data"]["getConnectCode"]["user"]["rankedNetplayProfile"]["losses"])
 
     if(winCount == "None"):
         winCount = 0
@@ -161,7 +178,12 @@ def refreshMainWindow():
     slashLabel.grid(row=4, column=1)
     lossLabel.grid(row=4, column=2, sticky="w")
 
-    #refresh the window every hour
+    # replace this after with some sort of scheduler that will run refreshMainWindow at midnight 
+    # if we cant use a scheduler, need to get current time and calulate how long until midnight, 
+    # use this to determine when to refresh again
+    # also need to cancel any previous afters to prevent unintended refreshses 
+    #  
+    # //TODO
     root.after(3600000, refreshMainWindow)
 
 ##### START OF MAIN WINDOW INIT #####
