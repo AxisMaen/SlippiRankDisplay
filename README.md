@@ -19,7 +19,7 @@ Every day at midnight local time, the current account will be updated. If you en
 
 Account and graph data is saved to cache.json, so do not remove this or you will lose all data that has been tracked.
 
-#Future Features
+# Future Features
 
 - Make sure the graph behaves correctly in all scenarios, the graph in general is very untested
 - Add some sort of indication (sound, animation, etc.) when an accounts rating goes up or down
