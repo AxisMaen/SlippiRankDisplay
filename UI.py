@@ -1,8 +1,10 @@
 from tkinter import *
+import datetime
 import json
 import Scraper
 import Cache
 import Graph
+
 
 ### Features to support ###
 
@@ -26,6 +28,9 @@ defaultSettings = {
     "victoryAudioPath": "victoryAudio.mp3",
     "defeatAudioPath": "defeatAudio.mp3"
 }
+
+#list of after function IDs that tracks any scheduled window refreshes
+afterIds = []
 
 def openSettings():
     top = Toplevel(root)
@@ -118,16 +123,17 @@ def refreshMainWindow():
     settings = loadSettings()
     code = settings["code"]
 
+    #remove any pending refreshes
+    for afterId in afterIds:
+        root.after_cancel(afterId)
+
+    #checks for code in cache, scrape needed, and code validity
     while(True):
         if(Cache.isCodeInCache(code)):
             if(Cache.isUpdateNeeded(code)):
                 print("Valid code, update needed")
                 #code in cache and needs updated, scrape and update cache
                 response = Scraper.sendQuery(code)
-
-                #also need to get cached graph data to append to, add to response
-                #oldRatingHistory = Cache.readCache()[code]["data"]["getConnectCode"]["user"]["rankedNetplayProfile"]["ratingHistory"]
-                #response["data"]["getConnectCode"]["user"]["rankedNetplayProfile"]["ratingHistory"] = oldRatingHistory
                 response = Cache.updateCache(code, response)
                 break
             else:
@@ -163,6 +169,7 @@ def refreshMainWindow():
     #clears old widgets
     widgets = root.winfo_children()
 
+    #get all widgets
     for widget in widgets:
         if(widget.winfo_children()):
             widgets.extend(widget.winfo_children())
@@ -194,22 +201,32 @@ def refreshMainWindow():
     lossLabel.grid(row=4, column=2, sticky="w")
 
     #create graph
-    #canvas = Graph.createGraph(ratingHistory)
-    #canvas.get_tk_widget().grid(row=5, column=1)
+    #graphFrame = Frame(root,)
+    canvas = Graph.createGraph(root, ratingHistory)
+    canvas.get_tk_widget().grid(row=5, column=0, columnspan=3)
+
+    #get delay from now until midnight
+    currentTime = datetime.datetime.now()
+    tomorrow = currentTime + datetime.timedelta(days=1)
+    delay = datetime.datetime.combine(tomorrow, datetime.time.min) - currentTime
+
+    #set to refresh at midnight
+    afterId = root.after(delay.total_seconds(), refreshMainWindow)
+
+    #add ID in case the refresh should be canceled
+    #refreshes are canceled if another one happens before schedule (e.g. switching to another code)
+    afterIds.append(afterId)
 
 
-    # replace this after with some sort of scheduler that will run refreshMainWindow at midnight 
-    # if we cant use a scheduler, need to get current time and calulate how long until midnight, 
-    # use this to determine when to refresh again
-    # also need to cancel any previous afters to prevent unintended refreshses 
-    #  //TODO
-
-    # right now refreshing every half hour, although not nessecaily scraping
-    root.after(1800000, refreshMainWindow)
+def on_closing():
+    root.destroy()
+    Graph.closeGraphs()
 
 ##### START OF MAIN WINDOW INIT #####
 
 root = Tk()
+
+root.protocol("WM_DELETE_WINDOW", on_closing)
 
 #create menu bar
 menuBar = Menu(root)
@@ -230,7 +247,7 @@ menuBar.add_cascade( #add file dropdown to menu bar
 
 #configure window
 root.title("Slippi Ranked Display")
-root.geometry("750x250")
+root.geometry("750x700")
 root.config(menu=menuBar, bg=bgColor)
 root.grid_columnconfigure((0,2), weight=1)
 
