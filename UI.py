@@ -1,7 +1,8 @@
 from tkinter import *
-import Scraper
 import json
+import Scraper
 import Cache
+import Graph
 
 ### Features to support ###
 
@@ -112,6 +113,7 @@ def loadSettings():
     return settings
 
 def refreshMainWindow():
+    print("Refreshing")
     #load settings
     settings = loadSettings()
     code = settings["code"]
@@ -122,7 +124,11 @@ def refreshMainWindow():
                 print("Valid code, update needed")
                 #code in cache and needs updated, scrape and update cache
                 response = Scraper.sendQuery(code)
-                Cache.updateCache(code, response)
+
+                #also need to get cached graph data to append to, add to response
+                #oldRatingHistory = Cache.readCache()[code]["data"]["getConnectCode"]["user"]["rankedNetplayProfile"]["ratingHistory"]
+                #response["data"]["getConnectCode"]["user"]["rankedNetplayProfile"]["ratingHistory"] = oldRatingHistory
+                response = Cache.updateCache(code, response)
                 break
             else:
                 print("Valid code, update not needed")
@@ -133,12 +139,13 @@ def refreshMainWindow():
             #not in cache, need to scrape
             response = Scraper.sendQuery(code)
             if(response["data"]["getConnectCode"]):
-                #if code is valid, update cache
-                Cache.updateCache(code, response)
                 print("Not in cache, updating")
+
+                #if code is valid, update cache
+                response = Cache.updateCache(code, response)
                 break
             else:
-                print("Invalid Code")
+                print("Invalid Code, using default settings")
                 #if code is invalid, use default settings and try again
                 code = defaultSettings["code"]
 
@@ -146,6 +153,7 @@ def refreshMainWindow():
     rating = response["data"]["getConnectCode"]["user"]["rankedNetplayProfile"]["ratingOrdinal"]
     winCount = str(response["data"]["getConnectCode"]["user"]["rankedNetplayProfile"]["wins"])
     lossCount = str(response["data"]["getConnectCode"]["user"]["rankedNetplayProfile"]["losses"])
+    ratingHistory = response["data"]["getConnectCode"]["user"]["rankedNetplayProfile"]["ratingHistory"]
 
     if(winCount == "None"):
         winCount = 0
@@ -185,13 +193,19 @@ def refreshMainWindow():
     slashLabel.grid(row=4, column=1)
     lossLabel.grid(row=4, column=2, sticky="w")
 
+    #create graph
+    #canvas = Graph.createGraph(ratingHistory)
+    #canvas.get_tk_widget().grid(row=5, column=1)
+
+
     # replace this after with some sort of scheduler that will run refreshMainWindow at midnight 
     # if we cant use a scheduler, need to get current time and calulate how long until midnight, 
     # use this to determine when to refresh again
     # also need to cancel any previous afters to prevent unintended refreshses 
-    #  
-    # //TODO
-    root.after(3600000, refreshMainWindow)
+    #  //TODO
+
+    # right now refreshing every half hour, although not nessecaily scraping
+    root.after(1800000, refreshMainWindow)
 
 ##### START OF MAIN WINDOW INIT #####
 

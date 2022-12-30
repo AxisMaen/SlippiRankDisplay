@@ -4,7 +4,7 @@ import requests
 #Only possible to get it by doing a full scrape with Selenium (avoiding for now)
 
 
-#sendQuery currently exits the program if it encounters an error, want to change that later
+#sendQuery currently exits the program if it encounters an error, want to change that later //TODO
 
 #sends a graphQL query to the endpoint 
 #returns a json response

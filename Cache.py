@@ -32,12 +32,28 @@ def isUpdateNeeded(code):
         return True
 
 #updates the given code and its attributes in the cache
+#the data given does NOT have rating history updated, that is handled here
+#returns the updated data for the given code
 def updateCache(code, data):
+    cache = readCache()
+
     displayName = data["data"]["getConnectCode"]["user"]["displayName"]
     rating = data["data"]["getConnectCode"]["user"]["rankedNetplayProfile"]["ratingOrdinal"]
     winCount = str(data["data"]["getConnectCode"]["user"]["rankedNetplayProfile"]["wins"])
     lossCount = str(data["data"]["getConnectCode"]["user"]["rankedNetplayProfile"]["losses"])
     currentDate = str(datetime.now().date())
+
+    #if code is in cache, get old rating history, otherwise init a new rating history
+    if(isCodeInCache(code)):
+        ratingHistory = cache[code]["data"]["getConnectCode"]["user"]["rankedNetplayProfile"]["ratingHistory"]
+    else:
+        ratingHistory = []
+
+    #update rating history
+    #rank is currently None since we don't pull that info yet
+    ratingHistory.append((currentDate, rating, str(None)))
+
+    print("Rating history: " + str(ratingHistory))
 
     data = {
         'data': {
@@ -49,6 +65,7 @@ def updateCache(code, data):
                         'ratingOrdinal': rating, 
                         'wins': winCount, 
                         'losses': lossCount,
+                        'ratingHistory' : ratingHistory,
                         '__typename': 'NetplayProfile'
                     },
                     'lastUpdate' : currentDate,
@@ -59,11 +76,12 @@ def updateCache(code, data):
         }
     }
 
-    cache = readCache()
     cache[code] = data
 
     with open("files/cache.json", "w") as file:
         json.dump(cache, file)
+
+    return data
 
 #returns a dict of the cache
 #if cache is not found, make a new one
@@ -90,6 +108,7 @@ def readCache():
                     'ratingOrdinal': 2008.962215, 
                     'wins': 77, 
                     'losses': 62,
+                    'ratingHistory' : (date, rating, rank)
                     '__typename': 'NetplayProfile'
                 },
                 lastUpdate : dateHere,
