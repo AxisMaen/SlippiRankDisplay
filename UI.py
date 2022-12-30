@@ -1,18 +1,20 @@
 from tkinter import *
+import os
 import datetime
 import json
 import Scraper
 import Cache
 import Graph
 
-
 ### Features to support ###
 
 # tkinter UI that shows rank and elo (looks like slippi user profile, could show set record too)
-# bar at the time with dropdown to access settings
-# app can be fullscreened (top bar removed), exit full screen with escape
-# settings menu allows changing slippi code and sound that plays when ranking up/down
-# optional: some sort of indication when an update happens (elo "scrolls" up/down, green or red flash for win or loss, etc.)
+# bar at the top with dropdown to access settings
+# app can be fullscreened (top bar removed), exit full screen with escape //TODO
+# settings menu allows changing slippi code and sound that plays when ranking up/down (sound //TODO)
+# optional: some sort of indication when an update happens (elo "scrolls" up/down, green or red flash for win or loss, etc.) //TODO
+
+settingsFilename = "files/settings.json"
 
 #create fonts and colors
 headerFont = ("Roboto", 28)
@@ -68,7 +70,6 @@ def openSettings():
     okButton.grid(row=3, column=1)
 
 def saveSettings(top, codeEntry, victoryAudioEntry, defeatAudioEntry):
-
     #if the code has changed, we need to refresh
     refreshNeeded = False 
 
@@ -81,17 +82,19 @@ def saveSettings(top, codeEntry, victoryAudioEntry, defeatAudioEntry):
 
     #get old settings, if file not found make new file
     try:
-        with open("files/settings.json", "r") as file:
+        with open(settingsFilename, "r") as file:
             oldSettings = json.load(file)
 
         #if code has changed a refresh might be needed
         if(settings["code"] != oldSettings["code"]):
             refreshNeeded = True
     except:
+        refreshNeeded = True
         pass
 
     #save settings to file
-    with open("files/settings.json", "w") as file:
+    os.makedirs(os.path.dirname(settingsFilename), exist_ok=True)
+    with open(settingsFilename, "w") as file:
         json.dump(settings, file)
 
     #refresh main window if needed
@@ -102,7 +105,7 @@ def saveSettings(top, codeEntry, victoryAudioEntry, defeatAudioEntry):
     top.destroy()
 
 
-#loads the settings in the settings file, uses default is no settings file found
+#loads the settings in the settings file, uses default if no settings file found
 def loadSettings():
     #default settings
     settings = defaultSettings
@@ -110,7 +113,7 @@ def loadSettings():
     #Open the settings from the file
     #If this fails, the default settings will be used
     try:
-        with open("files/settings.json", "r") as file:
+        with open(settingsFilename, "r") as file:
             settings = json.load(file)
     except:
         pass
@@ -211,13 +214,14 @@ def refreshMainWindow():
     delay = datetime.datetime.combine(tomorrow, datetime.time.min) - currentTime
 
     #set to refresh at midnight
-    afterId = root.after(delay.total_seconds(), refreshMainWindow)
+    afterId = root.after(int(delay.total_seconds()*1000), refreshMainWindow)
 
     #add ID in case the refresh should be canceled
     #refreshes are canceled if another one happens before schedule (e.g. switching to another code)
     afterIds.append(afterId)
 
 
+#close tkinter and any open graphs
 def on_closing():
     root.destroy()
     Graph.closeGraphs()
@@ -226,6 +230,7 @@ def on_closing():
 
 root = Tk()
 
+#ensure that both tkinter and graphs are closed when exiting
 root.protocol("WM_DELETE_WINDOW", on_closing)
 
 #create menu bar

@@ -1,9 +1,13 @@
 import json
 from datetime import datetime
+import os
 
 #Handles a cache for slippi ranked data
 #Cache is in the same format as the scraped response, but adds a "lastUpdated" value under "user"
 #Cache is a dict where key is a code and value is a dict with response data
+
+filename = "files/cache.json"
+
 
 #returns True if the code is already in the cache, false otherwise
 def isCodeInCache(code):
@@ -78,7 +82,8 @@ def updateCache(code, data):
 
     cache[code] = data
 
-    with open("files/cache.json", "w") as file:
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    with open(filename, "w") as file:
         json.dump(cache, file)
 
     return data
@@ -87,12 +92,13 @@ def updateCache(code, data):
 #if cache is not found, make a new one
 def readCache():
     try:
-        with open("files/cache.json", "r") as file:
+        with open(filename, "r") as file:
             cache = json.load(file)  
             return cache  
     except:
         #if cache not found, make new one and return it
-        with open("files/cache.json", "w") as file:
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        with open(filename, "w") as file:
             json.dump({}, file)
             return {}
 
