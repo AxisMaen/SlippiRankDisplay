@@ -2,3 +2,4 @@ build/
 dist/
 *.spec
 *.pyc
+.vscode/settings.json

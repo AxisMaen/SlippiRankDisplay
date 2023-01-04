@@ -3,9 +3,11 @@
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-#creates a graph of ranked data, returns the canvas to display
-def createGraph(root, ratingHistory):
-    closeGraphs() #close any open graphs
+def create_graph(root, rating_history):
+    '''
+    creates a graph of ranked data, returns the canvas to display
+    '''
+    close_graphs() #close any open graphs
 
     #disable toolbar
     plt.rcParams['toolbar'] = 'None'
@@ -17,7 +19,7 @@ def createGraph(root, ratingHistory):
     ranks = []
 
     #get lists for each variable
-    for point in ratingHistory:
+    for point in rating_history:
         dates.append(point[0])
         ratings.append(point[1])
         names.append(str(point[1]))
@@ -36,8 +38,8 @@ def createGraph(root, ratingHistory):
     plot1.set_ylabel('Elo')
 
     line, = plot1.plot(x,y, marker="o")
-    
-    canvas = FigureCanvasTkAgg(fig, master = root)  
+
+    canvas = FigureCanvasTkAgg(fig, master = root)
     canvas.draw()
 
     annot = plot1.annotate("", xy=(0,0), xytext=(-20,20),textcoords="offset points",
@@ -69,5 +71,8 @@ def createGraph(root, ratingHistory):
 
     return fig.canvas
 
-def closeGraphs():
+def close_graphs():
+    '''
+    Closes all plt graphs
+    '''
     plt.close("all")
